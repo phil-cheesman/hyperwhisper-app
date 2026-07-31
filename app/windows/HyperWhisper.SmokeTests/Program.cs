@@ -24,6 +24,7 @@ using HyperWhisper.Data;
 using HyperWhisper.Data.Entities;
 using HyperWhisper.Models;
 using HyperWhisper.Services;
+using HyperWhisper.Services.Streaming;
 using HyperWhisper.Services.Transcription;
 using HyperWhisper.ViewModels;
 using HyperWhisper.Views.Pages.Settings;
@@ -126,6 +127,13 @@ internal static class Program
                     "Groq request should cap completions at GroqMaxCompletionTokens");
                 Assert(!request.RootElement.TryGetProperty("max_tokens", out _),
                     "Groq request should use max_completion_tokens, not max_tokens");
+            });
+
+            Run("Deepgram streaming starts its session on WebSocket open", () =>
+            {
+                Assert(new DeepgramStreamingStrategy().SessionStartsOnWebSocketOpen,
+                    "Deepgram sends nothing until it receives audio, so startup must not "
+                        + "block waiting for a provider message");
             });
 
             // These checks call straight into the generated FFI surface
