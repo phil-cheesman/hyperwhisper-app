@@ -136,6 +136,25 @@ internal static class Program
                         + "block waiting for a provider message");
             });
 
+            Run("Deepgram parses every message shape of its \"channel\" field", () =>
+            {
+                var strategy = new DeepgramStreamingStrategy();
+
+                // "channel":[0,1] — the array form used by the endpointing frames.
+                Assert(strategy.ParseMessage("""{"type":"SpeechStarted","channel":[0,1],"timestamp":1.2}""")
+                        is StreamingProviderEvent.Metadata,
+                    "SpeechStarted should parse to a Metadata event");
+                Assert(strategy.ParseMessage("""{"type":"UtteranceEnd","channel":[0,1],"last_word_end":2.5}""")
+                        is StreamingProviderEvent.Metadata,
+                    "UtteranceEnd should parse to a Metadata event");
+
+                // "channel":{...} — the transcript form, which must keep working.
+                Assert(strategy.ParseMessage(
+                        """{"type":"Results","is_final":true,"channel":{"alternatives":[{"transcript":"hello"}]}}""")
+                        is StreamingProviderEvent.FinalTranscript { Text: "hello" },
+                    "Results should still yield its transcript");
+            });
+
             // These checks call straight into the generated FFI surface
             // (HyperwhisperCoreMethods.EvaluateLlmResponseJson / EvaluateCompletion /
             // NormalizeTermination), which doubles as the uniffi API-checksum drift
